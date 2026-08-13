@@ -1,18 +1,23 @@
+use anyhow::{Ok, anyhow};
 use tokio_retry::{Retry, strategy::{ExponentialBackoff, jitter}};
 
-async fn fetch_user_from_api(user_id: i32, attemps: &mut i32) {
-    *attemps += 1;
-
+async fn fetch_user_from_api(user_id: i32, attemps: i32) -> Result<String, anyhow::Error> {
+    if attemps != 3 {
+        return Err(anyhow!("Error with your facking coputher!!!"))
+    }
+    Ok(String::from("All Great!"))
 }
-async fn download_some(user_id: i32) {
+async fn download_some(user_id: i32) -> Result<String, anyhow::Error> {
     let mut attemps = 0;
 
     let strategy = ExponentialBackoff::from_millis(100)
         .map(jitter)
         .take(3);    
-    let jons_data = Retry::spawn(strategy, || async {
-        fetch_user_from_api(user_id,&mut attemps).await
-    }).await;
+    let jons_data = Retry::spawn(strategy, ||{
+        attemps += 1;
+        fetch_user_from_api(user_id,attemps)
+    }).await?;
+    Ok(jons_data)
 }
 
 #[tokio::main]
