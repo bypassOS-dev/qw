@@ -5,10 +5,11 @@ use tokio::sync::mpsc;
 #[tokio::main]
 async fn main() {
     let mut senders = Vec::new();
+    let mut handles = Vec::new();
     for i in 1..=3 {
         let (tx, mut rx) = mpsc::channel::<()>(1);
         senders.push(tx);
-        tokio::spawn(async move {
+        let handle = tokio::spawn(async move {
             loop {
                 select! {
                     _ = sleep(Duration::from_millis(1500)) => {
@@ -22,10 +23,15 @@ async fn main() {
             }
             println!("End {i} task");
         });
+        handles.push(handle);
     }
     println!("A tasks's starting do work!");
     tokio::signal::ctrl_c().await.unwrap();
     for sender in senders {
         sender.send(()).await.unwrap();
     }
+    for handle in handles {
+        handle.await.unwrap();
+    }
+    println!("All task ended!");
 }
