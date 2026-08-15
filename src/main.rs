@@ -1,28 +1,26 @@
-use anyhow::{Ok, anyhow};
-use tokio_retry::{Retry, strategy::{ExponentialBackoff, jitter}};
-
-async fn fetch_user_from_api(user_id: i32, attemps: i32) -> Result<String, anyhow::Error> {
-    if attemps != 3 {
-        return Err(anyhow!("Error with your facking coputher!!!"))
-    }
-    Ok(String::from("All Great!"))
-}
-async fn download_some(user_id: i32) -> Result<String, anyhow::Error> {
-    let mut attemps = 0;
-
-    let strategy = ExponentialBackoff::from_millis(100)
-        .map(jitter)
-        .take(3);    
-    let jons_data = Retry::spawn(strategy, ||{
-        attemps += 1;
-        fetch_user_from_api(user_id,attemps)
-    }).await?;
-    Ok(jons_data)
-}
-
+use tokio::select;
+use tokio::time::{sleep, Duration};
+use tokio::sync::mpsc;
 #[tokio::main]
 async fn main() {
-    let user_id = 123;
-    let path = download_some(user_id).await;
+    for i in 1..=3 {
+        let (tx, mut rx) = mpsc::channel::<()>(1);
 
+        tokio::spawn(async move {
+            loop {
+                select! {
+                    _ = sleep(Duration::from_millis(1500)) => {
+                        println!("Task {i} was did!");
+                    }
+                    _ = rx.recv() => {
+                        println!("{i} task is ending a work!");
+                        break;
+                    }
+                }
+            }
+            println!("End {i} task");
+        });
+    }
+    println!("A tasks's starting do work!");
+    tokio::signal::ctrl_c();
 }
