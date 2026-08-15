@@ -1,11 +1,13 @@
 use tokio::select;
 use tokio::time::{sleep, Duration};
 use tokio::sync::mpsc;
+
 #[tokio::main]
 async fn main() {
+    let mut senders = Vec::new();
     for i in 1..=3 {
         let (tx, mut rx) = mpsc::channel::<()>(1);
-
+        senders.push(tx);
         tokio::spawn(async move {
             loop {
                 select! {
@@ -22,5 +24,8 @@ async fn main() {
         });
     }
     println!("A tasks's starting do work!");
-    tokio::signal::ctrl_c();
+    tokio::signal::ctrl_c().await.unwrap();
+    for sender in senders {
+        sender.send(()).await.unwrap();
+    }
 }
