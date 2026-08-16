@@ -1,37 +1,12 @@
-use tokio::select;
-use tokio::time::{sleep, Duration};
-use tokio::sync::mpsc;
+use tracing::info;
 
 #[tokio::main]
 async fn main() {
-    let mut senders = Vec::new();
-    let mut handles = Vec::new();
-    for i in 1..=3 {
-        let (tx, mut rx) = mpsc::channel::<()>(1);
-        senders.push(tx);
-        let handle = tokio::spawn(async move {
-            loop {
-                select! {
-                    _ = sleep(Duration::from_millis(1500)) => {
-                        println!("Task {i} was did!");
-                    }
-                    _ = rx.recv() => {
-                        println!("{i} task is ending a work!");
-                        break;
-                    }
-                }
-            }
-            println!("End {i} task");
-        });
-        handles.push(handle);
-    }
-    println!("A tasks's starting do work!");
-    tokio::signal::ctrl_c().await.unwrap();
-    for sender in senders {
-        sender.send(()).await.unwrap();
-    }
-    for handle in handles {
-        handle.await.unwrap();
-    }
-    println!("All task ended!");
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .init();
+    
+    let span = tracing::info_span!("client", id = 1);
+    let _guard = span.enter();
+    info!("Hi");
 }
